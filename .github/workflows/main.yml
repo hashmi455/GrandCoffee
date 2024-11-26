@@ -1,31 +1,26 @@
-name: Deploy to Server
+name: Deploy to Apache Server
 
 on:
   push:
     branches:
-      - main
+      - main # Adjust to your deployment branch
 
 jobs:
   deploy:
+    name: Deploy to Apache Server
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+    - name: Checkout Code
+      uses: actions/checkout@v3
 
-      - name: Debug Environment (Optional)
-        run: |
-          echo "Checking secrets..."
-          echo "Server IP: ${{ secrets.SERVER_IP }}"
-          echo "Server User: ${{ secrets.SERVER_USER }}"
+    - name: Set up SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
-      - name: Deploy to Server
-        uses: appleboy/ssh-action@v0.1.8
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_PRIVATE_KEY }}
-          port: 22
-          script: |
-            cd /var/www/html/
-            git pull origin main
+    - name: Deploy Files to Server
+      run: |
+        rsync -avz --delete ./ ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/var/www/html
